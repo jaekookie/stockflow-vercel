@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>StockFlow — Gestion commerciale, stocks & comptabilité</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef8f3',
+              100: '#d4efe2',
+              200: '#adddc7',
+              300: '#78c4a3',
+              400: '#40a37b',
+              500: '#1f875e',
+              600: '#156b4a',
+              700: '#10543b',
+              800: '#0d4330',
+              900: '#0a3627',
+            },
+            amberwarm: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              500: '#d97706',
+              600: '#b45309',
+              700: '#92400e',
+            }
+          },
+          keyframes: {
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            barGrow: {
+              '0%': { transform: 'scaleY(0.15)', opacity: '0.4' },
+              '100%': { transform: 'scaleY(1)', opacity: '1' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '0.35', transform: 'scale(1)' },
+              '50%': { opacity: '0.6', transform: 'scale(1.04)' },
+            }
+          },
+          animation: {
+            floatSlow: 'floatSlow 4.5s ease-in-out infinite',
+            barGrow: 'barGrow 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            pulseGlow: 'pulseGlow 6s ease-in-out infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* Responsive : zones sûres des téléphones, tableaux défilables, textes longs */
+    :root {
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+    header.sticky { top: env(safe-area-inset-top, 0px); }
+    .overflow-x-auto > table { min-width: 600px; }
+    img, svg { max-width: 100%; }
+    h1, h2, h3 { overflow-wrap: anywhere; }
+    @media (max-width: 640px) {
+      input, select, textarea { font-size: 16px; } /* évite le zoom automatique sur iPhone */
+    }
+
+    /* Champs de formulaire toujours clairs (même si le navigateur est en mode sombre) */
+    :root { color-scheme: light; }
+    input, select, textarea {
+      background-color: #ffffff;
+      color: #0f172a;
+      color-scheme: light;
+    }
+    input::placeholder, textarea::placeholder { color: #94a3b8; }
+    input[type="checkbox"] { accent-color: #0f7646; }
+
+    /* Scrollbar discrète */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Surface carte lumineuse inspirée de la référence */
+    .ref-card {
+      background-color: #ffffff;
+      border: 1px solid #e6ece8;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 6px 18px -6px rgba(15, 23, 42, 0.04);
+      transition: border-color 0.22s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .ref-card:hover {
+      border-color: #d1ddd6;
+      box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.07), 0 12px 24px -10px rgba(15, 118, 70, 0.08);
+    }
+
+    /* Transition douce de changement de vue */
+    .view-enter {
+      animation: softViewEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes softViewEnter {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Piste de défilement horizontal fluide pour les cartes d'aperçu */
+    .carousel-track {
+      display: flex;
+      width: 100%;
+      transition: transform 0.78s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+    .carousel-slide-item {
+      flex: 0 0 100%;
+      width: 100%;
+      padding: 4px 2px;
+      box-sizing: border-box;
+    }
+
+    /* Micro-flottement très subtil sur les cartes d'aperçu */
+    .subtle-breath {
+      animation: subtleBreath 6s ease-in-out infinite;
+    }
+    @keyframes subtleBreath {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    /* Micro-flottement très subtil sur la carte de présentation */
+    .hero-forest-bg {
+      background:
+        radial-gradient(circle at 15% 15%, rgba(74, 222, 128, 0.16) 0%, transparent 45%),
+        radial-gradient(circle at 88% 85%, rgba(20, 83, 45, 0.45) 0%, transparent 55%),
+        linear-gradient(155deg, #0f7646 0%, #0b5a35 55%, #073d24 100%);
+    }
+
+    /* Interaction tactile douce */
+    .btn-press {
+      transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .btn-press:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    /* Respect strict de prefers-reduced-motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Impression propre des reçus et factures */
+    @media print {
+      body * { visibility: hidden; }
+      #printable-receipt, #printable-receipt * { visibility: visible; }
+      #printable-receipt {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #ffffff !important;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
+
+  <!-- CONTENEUR DE NOTIFICATIONS TOAST -->
+  <div id="toast-container" aria-live="polite" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- ===================================================================== -->
+  <!-- ÉCRAN 1 : PAGE DE CONNEXION SPLIT-SCREEN LUMINEUSE & DOUCE           -->
+  <!-- ===================================================================== -->
+  <div id="login-screen" class="min-h-screen w-full flex flex-col lg:flex-row bg-white">
+
+    <!-- COLONNE GAUCHE : IDENTITÉ FORÊT/ÉMERAUDE & APERÇUS EN FONDU DOUX -->
+    <div class="lg:w-[43%] hero-forest-bg text-white p-7 sm:p-10 lg:p-12 flex flex-col justify-between relative overflow-hidden min-h-[420px] lg:min-h-screen">
+      <!-- Cercles d'ambiance très discrets -->
+      <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div class="w-[340px] h-[340px] rounded-full border border-white/10 bg-white/[0.015]"></div>
+        <div class="absolute w-[520px] h-[520px] rounded-full border border-white/[0.06]"></div>
+      </div>
+
+      <!-- En-tête Marque & Navigation Douce des Aperçus -->
+      <div class="relative z-10 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white text-[#0f7646] flex items-center justify-center shadow-sm">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-lg font-bold tracking-tight text-white leading-tight">StockFlow</div>
+            <div class="text-xs text-emerald-100/85">Gestion commerciale, stocks & comptabilité</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="prevCarouselSlide()" aria-label="Aperçu précédent"
+            class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition btn-press">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button type="button" onclick="nextCarouselSlide()" aria-label="Aperçu suivant"
+            class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition btn-press">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Zone Centrale : Piste de Défilement Horizontal Fluide -->
+      <div class="relative z-10 my-8 lg:my-0 flex flex-col items-center justify-center w-full">
+        <div class="w-full max-w-[390px] overflow-hidden rounded-2xl">
+          <div id="carousel-track" class="carousel-track"></div>
+        </div>
+
+        <div class="flex items-center justify-center gap-2.5 mt-6">
+          <div id="carousel-dots" class="flex items-center gap-2"></div>
+          <button type="button" id="carousel-toggle-btn" onclick="toggleCarouselAutoplay()"
+            class="ml-2 text-[11px] font-medium text-emerald-100/85 hover:text-white px-2.5 py-0.5 rounded-md bg-white/10 transition">
+            Pause
+          </button>
+        </div>
+      </div>
+
+      <!-- Pied Panneau Gauche -->
+      <div class="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-t border-white/10 pt-4">
+        <p class="text-sm text-emerald-50/90 leading-relaxed max-w-sm">
+          Pilotez vos ventes, dépôts, créances et exports Sage en FCFA avec un accès adapté à chaque poste.
+        </p>
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-200/85 shrink-0">FCFA • Sage</span>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE : CONNEXION & 4 CARTES DÉMO CLIQUABLES DIRECTEMENT -->
+    <div class="lg:w-[57%] bg-white flex flex-col justify-center items-center p-6 sm:p-10 lg:p-12">
+      <div class="w-full max-w-2xl">
+
+        <div class="mb-6">
+          <div class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#0f7646] bg-emerald-50 border border-emerald-200/70 px-2.5 py-1 rounded-full mb-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f7646]"></span>
+            Accès sécurisé par rôle
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Bienvenue sur StockFlow</h1>
+          <p class="text-sm text-slate-500 mt-1">Connectez-vous avec vos identifiants ou cliquez directement sur une carte de compte démo.</p>
+        </div>
+
+        <!-- Formulaire de Connexion -->
+        <form id="login-form" onsubmit="handleManualLogin(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="login-email" class="block text-xs font-semibold text-slate-700 mb-1.5">Adresse e-mail ou identifiant</label>
+              <div class="relative">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                <input type="text" id="login-email" required value="gerant@stockflow.demo" placeholder="identifiant@entreprise.cm"
+                  class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0f7646] transition">
+              </div>
+            </div>
+
+            <div>
+              <label for="login-password" class="block text-xs font-semibold text-slate-700 mb-1.5">Mot de passe</label>
+              <div class="relative">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <input type="password" id="login-password" required value="demo2026"
+                  class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0f7646] transition">
+                <button type="button" onclick="togglePasswordVisibility()" aria-label="Afficher ou masquer le mot de passe"
+                  class="absolute right-3 top-3 p-0.5 text-slate-400 hover:text-slate-700 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-0.5">
+            <label class="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
+              <input type="checkbox" id="remember-me" checked class="w-4 h-4 rounded border-slate-300 text-[#0f7646] focus:ring-emerald-500">
+              <span>Se souvenir de moi</span>
+            </label>
+            <button type="button" onclick="showToast('Cliquez directement sur une carte de compte démo pour ouvrir sa session.', 'info')"
+              class="font-semibold text-[#0f7646] hover:text-[#0b5a35] transition">
+              Mot de passe oublié ?
+            </button>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3.5 px-5 bg-[#0f7646] hover:bg-[#0b5a35] text-white font-semibold text-sm rounded-xl shadow-xs flex items-center justify-center gap-2 btn-press">
+            <span>Se connecter</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Séparateur Comptes Démo -->
+        <div class="relative my-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-slate-200"></div>
+          </div>
+          <div class="relative flex justify-center">
+            <span class="bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Comptes de démonstration • Clic direct pour connexion
+            </span>
+          </div>
+        </div>
+
+        <!-- Grille 2x2 des 4 Comptes Démo (Sans doubles boutons, clic direct) -->
+        <div id="demo-accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- ÉCRAN 2 : ESPACE APPLICATIF LUMINEUX & CLOISONNÉ PAR RÔLE (RBAC)      -->
+  <!-- ===================================================================== -->
+  <div id="app-shell" class="hidden min-h-screen flex bg-[#f8fafc] text-slate-900">
+
+    <!-- Backdrop Mobile Sidebar -->
+    <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-950/40 z-30 hidden lg:hidden"></div>
+
+    <!-- BARRE LATÉRALE DYNAMIQUE -->
+    <aside id="sidebar" class="fixed lg:sticky lg:top-0 lg:h-screen lg:shrink-0 overflow-y-auto inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
+      <div>
+        <!-- Marque -->
+        <div class="h-16 px-5 flex items-center justify-between border-b border-slate-100">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-[#0f7646] flex items-center justify-center text-white">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <span class="font-extrabold text-slate-900 tracking-tight">StockFlow</span>
+          </div>
+          <button onclick="toggleMobileSidebar()" aria-label="Fermer le menu" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Navigation Filtrée Selon le Rôle -->
+        <nav id="sidebar-nav" class="px-3 space-y-1 mt-4"></nav>
+      </div>
+
+      <!-- Pied Latéral : Changement Rapide de Compte & Déconnexion -->
+      <div class="p-4 border-t border-slate-100 space-y-2.5">
+        <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200/75">
+          <label for="quick-role-switcher" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+            Changer de compte démo
+          </label>
+          <select id="quick-role-switcher" onchange="loginAsRole(this.value)"
+            class="w-full text-xs font-semibold bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#0f7646] cursor-pointer">
+            <option value="gerant">Gérant (Accès complet)</option>
+            <option value="caissier">Caissier (POS, Devis/Factures & Clients)</option>
+            <option value="magasinier">Magasinier (Stocks, Inventaire & BL)</option>
+            <option value="comptable">Comptable (Finances, Créances & Sage)</option>
+          </select>
+        </div>
+
+        <button onclick="logout()"
+          class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition btn-press">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- TOPBAR DE SESSION -->
+      <header class="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-3">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <button onclick="toggleMobileSidebar()" aria-label="Ouvrir le menu" class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+
+          <div class="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 sm:px-3 py-1.5 min-w-0">
+            <svg class="w-4 h-4 text-[#0f7646] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <select id="active-depot-select" onchange="changeActiveDepot(this.value)"
+              class="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer truncate max-w-[150px] sm:max-w-[260px]">
+              <option value="all">Tous les dépôts & POS</option>
+              <option value="Boutique Centre-Ville" selected>Boutique Centre-Ville (POS 1)</option>
+              <option value="Dépôt Central Akwa">Dépôt Central Akwa</option>
+              <option value="Annexe Yaoundé Bastos">Annexe Yaoundé Bastos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 sm:gap-4 shrink-0">
+          <div id="autosave-indicator" class="hidden md:flex items-center gap-1.5 text-xs font-medium text-[#0f7646] bg-emerald-50 border border-emerald-200/70 px-3 py-1 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="autosave-text">Sauvegarde auto active</span>
+          </div>
+
+          <div class="flex items-center gap-2.5 pl-2.5 sm:pl-3 border-l border-slate-200">
+            <div id="user-avatar" class="w-8 h-8 rounded-full bg-[#0f7646] text-white flex items-center justify-center font-bold text-xs shrink-0">
+              AK
+            </div>
+            <div class="hidden sm:block text-left">
+              <div id="user-name" class="text-xs font-bold text-slate-900 leading-tight">Amina Kouam</div>
+              <div id="user-role-label" class="text-[11px] font-medium text-[#0f7646] leading-tight">Gérant</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ZONE D'AFFICHAGE DES MODULES -->
+      <main id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto view-enter"></main>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODALE INTERACTIVE                                                  -->
+  <!-- ===================================================================== -->
+  <div id="modal-backdrop" onclick="handleBackdropClick(event)" class="fixed inset-0 bg-slate-950/45 z-50 hidden flex items-center justify-center p-4">
+    <div id="modal-box" class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto view-enter"></div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- LOGIQUE APPLICATIVE : RBAC STRICT, FONDU DOUX & MODULES MÉTIER      -->
+  <!-- ===================================================================== -->
+  <script>
+    // =======================================================================
+    // 1. RÔLES, MODULES & CONTRÔLE D'ACCÈS (RBAC)
+    // =======================================================================
+    const MODULES_META = [
+      { id: 'dashboard',    label: 'Tableau de bord',     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+      { id: 'pos',          label: 'Caisse POS',          icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+      { id: 'documents',    label: 'Documents',           icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { id: 'stocks',       label: 'Stocks & Inventaire', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+      { id: 'tiers',        label: 'Clients & Fournisseurs', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+      { id: 'comptabilite', label: 'Export Sage',         icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
+      { id: 'securite',     label: 'Utilisateurs & Audit', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' }
+    ];
+
+    const ROLES = {
+      gerant: {
+        id: 'gerant', name: 'Amina Kouam', firstName: 'Amina', initials: 'AK',
+        title: 'Gérant', badge: 'GÉRANT', email: 'gerant@stockflow.demo',
+        desc: 'Accès complet à tous les modules',
+        scopeSummary: 'Tableau de bord, caisse, stocks, documents, tiers, Sage et sécurité.',
+        restrictionsSummary: 'Aucune restriction : supervision totale.',
+        defaultModule: 'dashboard',
+        allowedModules: ['dashboard', 'pos', 'documents', 'stocks', 'tiers', 'comptabilite', 'securite'],
+        permissions: { canProcessPOS: true, canAdjustStock: true, canSeePurchasePrice: true }
+      },
+      caissier: {
+        id: 'caissier', name: 'Paul Nkoulou', firstName: 'Paul', initials: 'PN',
+        title: 'Caissier', badge: 'CAISSE', email: 'caissier@stockflow.demo',
+        desc: 'Ventes, devis, factures et clients',
+        scopeSummary: 'Caisse POS, devis/factures et fichier clients.',
+        restrictionsSummary: 'Pas d\'accès aux prix d\'achat, fournisseurs, inventaire ni exports comptables.',
+        defaultModule: 'pos',
+        allowedModules: ['pos', 'documents', 'tiers'],
+        permissions: { canProcessPOS: true, canAdjustStock: false, canSeePurchasePrice: false }
+      },
+      magasinier: {
+        id: 'magasinier', name: 'Joël Mbarga', firstName: 'Joël', initials: 'JM',
+        title: 'Magasinier', badge: 'STOCK', email: 'magasinier@stockflow.demo',
+        desc: 'Stocks, inventaire et bons de livraison',
+        scopeSummary: 'Stocks multi-dépôts, inventaire physique, BL et commandes.',
+        restrictionsSummary: 'Pas d\'accès à la caisse, aux clients ni à la comptabilité.',
+        defaultModule: 'stocks',
+        allowedModules: ['stocks', 'documents', 'tiers'],
+        permissions: { canProcessPOS: false, canAdjustStock: true, canSeePurchasePrice: true }
+      },
+      comptable: {
+        id: 'comptable', name: 'Estelle Belinga', firstName: 'Estelle', initials: 'EB',
+        title: 'Comptable', badge: 'COMPTA', email: 'comptable@stockflow.demo',
+        desc: 'Finances, créances, dettes et export Sage',
+        scopeSummary: 'Tableau de bord, documents, créances/dettes et export Sage.',
+        restrictionsSummary: 'Lecture seule : pas de caisse ni de mouvements de stock.',
+        defaultModule: 'dashboard',
+        allowedModules: ['dashboard', 'documents', 'tiers', 'comptabilite'],
+        permissions: { canProcessPOS: false, canAdjustStock: false, canSeePurchasePrice: true }
+      }
+    };
+
+    // =======================================================================
+    // 2. ÉTAT GLOBAL & DONNÉES DE DÉMONSTRATION
+    // =======================================================================
+    const state = {
+      currentRole: null,
+      activeModule: 'dashboard',
+      activeDepot: 'Boutique Centre-Ville',
+      chartRange: 'Ce mois',
+      hoveredPointIndex: null,
+      stockTab: 'catalogue',
+      docFilter: 'Tous',
+
+      // Caisse POS
+      cart: [],
+      posSearch: '',
+      posCategory: 'Toutes',
+      posPriceTier: 'detail',
+      posDocType: 'Facture',
+      posPaymentMethod: 'Espèces',
+      posClientId: 'CLI-000',
+      posDiscount: 0,
+      posIsCredit: false,
+      posAdvancePaid: 0,
+      posInstallments: 2,
+
+      products: [
+        { id: 'P-001', ref: 'VET-001', barcode: '6001000010011', name: 'Chemise coton homme', category: 'Vêtements', depot: 'Boutique Centre-Ville', stock: 42, minStock: 10, buyPrice: 6500, retailPrice: 12000, wholesalePrice: 9500, expiry: '2030-12-31', iconType: 'shirt', iconTone: 'bg-indigo-50 text-indigo-600', soldCount: 128, revenueTotal: 1536000 },
+        { id: 'P-002', ref: 'TEL-014', barcode: '6001000010028', name: 'Smartphone Tecno Spark 20', category: 'Téléphonie', depot: 'Boutique Centre-Ville', stock: 6, minStock: 8, buyPrice: 78000, retailPrice: 105000, wholesalePrice: 94000, expiry: '2030-12-31', iconType: 'phone', iconTone: 'bg-sky-50 text-sky-600', soldCount: 46, revenueTotal: 4830000 },
+        { id: 'P-003', ref: 'OUT-203', barcode: '6001000010035', name: 'Perceuse sans fil 18V', category: 'Outillage', depot: 'Dépôt Central Akwa', stock: 15, minStock: 5, buyPrice: 38000, retailPrice: 56000, wholesalePrice: 49000, expiry: '2031-06-30', iconType: 'wrench', iconTone: 'bg-amber-50 text-amber-700', soldCount: 31, revenueTotal: 1736000 },
+        { id: 'P-004', ref: 'CUI-077', barcode: '6001000010042', name: 'Marmite inox 24 cm', category: 'Cuisine', depot: 'Boutique Centre-Ville', stock: 0, minStock: 6, buyPrice: 9000, retailPrice: 15500, wholesalePrice: 12500, expiry: '2032-01-31', iconType: 'pot', iconTone: 'bg-rose-50 text-rose-600', soldCount: 64, revenueTotal: 992000 },
+        { id: 'P-005', ref: 'ALI-310', barcode: '6001000010059', name: 'Huile de palme 5 L', category: 'Alimentaire', depot: 'Dépôt Central Akwa', stock: 120, minStock: 30, buyPrice: 5200, retailPrice: 7500, wholesalePrice: 6500, expiry: '2026-12-15', iconType: 'box', iconTone: 'bg-emerald-50 text-[#0f7646]', soldCount: 210, revenueTotal: 1575000 },
+        { id: 'P-006', ref: 'ALI-322', barcode: '6001000010066', name: 'Riz parfumé sac 25 kg', category: 'Alimentaire', depot: 'Annexe Yaoundé Bastos', stock: 58, minStock: 20, buyPrice: 14500, retailPrice: 19000, wholesalePrice: 17000, expiry: '2027-03-31', iconType: 'box', iconTone: 'bg-emerald-50 text-[#0f7646]', soldCount: 175, revenueTotal: 3325000 },
+        { id: 'P-007', ref: 'VET-045', barcode: '6001000010073', name: 'Robe wax femme', category: 'Vêtements', depot: 'Boutique Centre-Ville', stock: 4, minStock: 8, buyPrice: 8000, retailPrice: 16500, wholesalePrice: 13000, expiry: '2030-12-31', iconType: 'shirt', iconTone: 'bg-indigo-50 text-indigo-600', soldCount: 87, revenueTotal: 1435500 },
+        { id: 'P-008', ref: 'TEL-022', barcode: '6001000010080', name: 'Chargeur rapide USB-C 33W', category: 'Téléphonie', depot: 'Boutique Centre-Ville', stock: 85, minStock: 15, buyPrice: 2800, retailPrice: 5500, wholesalePrice: 4200, expiry: '2030-12-31', iconType: 'phone', iconTone: 'bg-sky-50 text-sky-600', soldCount: 142, revenueTotal: 781000 },
+        { id: 'P-009', ref: 'OUT-118', barcode: '6001000010097', name: 'Caisse à outils 40 pièces', category: 'Outillage', depot: 'Dépôt Central Akwa', stock: 22, minStock: 6, buyPrice: 21000, retailPrice: 34000, wholesalePrice: 29000, expiry: '2031-06-30', iconType: 'wrench', iconTone: 'bg-amber-50 text-amber-700', soldCount: 38, revenueTotal: 1292000 },
+        { id: 'P-010', ref: 'CUI-091', barcode: '6001000010103', name: 'Set de casseroles 5 pièces', category: 'Cuisine', depot: 'Annexe Yaoundé Bastos', stock: 18, minStock: 5, buyPrice: 24000, retailPrice: 39000, wholesalePrice: 33000, expiry: '2032-01-31', iconType: 'pot', iconTone: 'bg-rose-50 text-rose-600', soldCount: 29, revenueTotal: 1131000 }
+      ],
+
+      clients: [
+        { id: 'CLI-000', name: 'Client Comptoir', type: 'Particulier', phone: '—', totalPurchases: 0, debt: 0, lastOrder: 'Vente au comptoir' },
+        { id: 'CLI-001', name: 'Ets Kamga', type: 'Grossiste', phone: '+237 677 12 34 56', totalPurchases: 3850000, debt: 175000, lastOrder: '19/11/2026' },
+        { id: 'CLI-002', name: 'Boutique Mireille', type: 'Détaillant', phone: '+237 699 45 67 89', totalPurchases: 1240000, debt: 0, lastOrder: '17/11/2026' },
+        { id: 'CLI-003', name: 'Société Tchinda & Fils', type: 'Grossiste', phone: '+237 655 98 76 54', totalPurchases: 5120000, debt: 640000, lastOrder: '14/11/2026' },
+        { id: 'CLI-004', name: 'Mme Ngo Bayiha', type: 'Particulier', phone: '+237 670 22 33 44', totalPurchases: 285000, debt: 45000, lastOrder: '10/11/2026' }
+      ],
+
+      suppliers: [
+        { id: 'FOU-001', name: 'Cameroun Distribution SARL', category: 'Alimentaire', phone: '+237 233 42 10 10', debtToPay: 1850000 },
+        { id: 'FOU-002', name: 'Tech Import Douala', category: 'Téléphonie', phone: '+237 233 43 20 20', debtToPay: 920000 },
+        { id: 'FOU-003', name: 'Quincaillerie Générale du Littoral', category: 'Outillage', phone: '+237 233 44 30 30', debtToPay: 0 }
+      ],
+
+      documents: [
+        { id: 'FAC-2026-104', type: 'Facture', date: '19/11/2026', client: 'Ets Kamga', total: 425000, paid: 250000, method: 'Orange Money', status: 'Échelonné', itemsSummary: '4x Smartphone Tecno Spark 20' },
+        { id: 'FAC-2026-103', type: 'Facture', date: '18/11/2026', client: 'Boutique Mireille', total: 190000, paid: 190000, method: 'Espèces', status: 'Payé', itemsSummary: '10x Riz parfumé sac 25 kg' },
+        { id: 'BL-2026-052', type: 'Bon de livraison', date: '17/11/2026', client: 'Société Tchinda & Fils', total: 680000, paid: 0, method: 'Virement', status: 'Livré', itemsSummary: '20x Huile de palme 5 L, 10x Perceuse sans fil 18V' },
+        { id: 'DEV-2026-031', type: 'Devis', date: '16/11/2026', client: 'Mme Ngo Bayiha', total: 96500, paid: 0, method: 'Espèces', status: 'En attente', itemsSummary: '2x Set de casseroles 5 pièces' },
+        { id: 'BC-2026-018', type: 'Bon de commande', date: '15/11/2026', client: 'Ets Kamga', total: 540000, paid: 0, method: 'Virement', status: 'Confirmé', itemsSummary: '40x Chemise coton homme' },
+        { id: 'FAC-2026-102', type: 'Facture', date: '14/11/2026', client: 'Société Tchinda & Fils', total: 1240000, paid: 600000, method: 'MTN MoMo', status: 'Échelonné', itemsSummary: '12x Caisse à outils 40 pièces, 8x Perceuse sans fil 18V' }
+      ],
+
+      stockMovements: [
+        { id: 'MVT-501', date: '19/11/2026 09:12', product: 'Smartphone Tecno Spark 20', type: 'Sortie (Facture)', qty: -4, depot: 'Boutique Centre-Ville', user: 'Paul Nkoulou (Caissier)' },
+        { id: 'MVT-500', date: '18/11/2026 16:40', product: 'Riz parfumé sac 25 kg', type: 'Sortie (Facture)', qty: -10, depot: 'Annexe Yaoundé Bastos', user: 'Paul Nkoulou (Caissier)' },
+        { id: 'MVT-499', date: '17/11/2026 11:05', product: 'Huile de palme 5 L', type: 'Entrée (Réception)', qty: 60, depot: 'Dépôt Central Akwa', user: 'Joël Mbarga (Magasinier)' },
+        { id: 'MVT-498', date: '15/11/2026 08:30', product: 'Marmite inox 24 cm', type: 'Correction Inventaire', qty: -3, depot: 'Boutique Centre-Ville', user: 'Joël Mbarga (Magasinier)' }
+      ],
+
+      users: [
+        { name: 'Amina Kouam', email: 'gerant@stockflow.demo', role: 'Gérant', lastLogin: 'Aujourd\'hui 08:02' },
+        { name: 'Paul Nkoulou', email: 'caissier@stockflow.demo', role: 'Caissier', lastLogin: 'Aujourd\'hui 08:15' },
+        { name: 'Joël Mbarga', email: 'magasinier@stockflow.demo', role: 'Magasinier', lastLogin: 'Hier 17:40' },
+        { name: 'Estelle Belinga', email: 'comptable@stockflow.demo', role: 'Comptable', lastLogin: 'Hier 15:22' }
+      ],
+
+      auditLogs: [
+        { time: '19/11/2026 09:12', user: 'Paul Nkoulou', role: 'Caissier', action: 'Facture FAC-2026-104 générée (425 000 FCFA)', category: 'Vente' },
+        { time: '18/11/2026 16:40', user: 'Paul Nkoulou', role: 'Caissier', action: 'Facture FAC-2026-103 générée (190 000 FCFA)', category: 'Vente' },
+        { time: '17/11/2026 11:05', user: 'Joël Mbarga', role: 'Magasinier', action: 'Réception de 60 unités — Huile de palme 5 L', category: 'Stock' },
+        { time: '15/11/2026 08:30', user: 'Joël Mbarga', role: 'Magasinier', action: 'Inventaire validé (1 écart corrigé)', category: 'Inventaire' }
+      ]
+    };
+
+    // =======================================================================
+    // 3. DÉFILEMENT HORIZONTAL FLUIDE DES APERÇUS SUR LA PAGE DE CONNEXION
+    // =======================================================================
+    let carouselIndex = 0;
+    let carouselAutoplay = true;
+    let carouselTimer = null;
+
+    const CAROUSEL_SLIDES = [
+      {
+        render: () => `
+          <div class="bg-white text-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-100/80 subtle-breath">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <span class="text-[11px] font-semibold text-[#0f7646] bg-emerald-50 px-2.5 py-0.5 rounded-full">Tableau de bord</span>
+                <h3 class="text-base font-bold text-slate-900 mt-1.5">Activité & rentabilité</h3>
+              </div>
+              <span class="text-xs font-bold text-[#0f7646] bg-emerald-50 px-2.5 py-1 rounded-full">+12,5%</span>
+            </div>
+
+            <div class="text-2xl font-extrabold text-slate-900 tracking-tight">12 458 500 <span class="text-xs font-semibold text-slate-500">FCFA</span></div>
+            <p class="text-xs text-slate-500 mt-0.5 mb-4">Chiffre d'affaires mensuel • Bénéfice net estimé : 3 284 200 FCFA</p>
+
+            <svg viewBox="0 0 320 92" class="w-full h-24 overflow-visible">
+              <defs>
+                <linearGradient id="loginAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0f7646" stop-opacity="0.22"/>
+                  <stop offset="100%" stop-color="#0f7646" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <path d="M 8 76 C 55 62, 85 68, 125 48 C 165 28, 210 34, 255 18 C 280 10, 298 14, 312 10 L 312 88 L 8 88 Z" fill="url(#loginAreaGrad)"/>
+              <path d="M 8 76 C 55 62, 85 68, 125 48 C 165 28, 210 34, 255 18 C 280 10, 298 14, 312 10" fill="none" stroke="#0f7646" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="125" cy="48" r="4" fill="#ffffff" stroke="#0f7646" stroke-width="2.2"/>
+              <circle cx="255" cy="18" r="4" fill="#ffffff" stroke="#0f7646" stroke-width="2.2"/>
+              <circle cx="312" cy="10" r="4.5" fill="#0f7646" stroke="#ffffff" stroke-width="2"/>
+            </svg>
+          </div>
+        `
+      },
+      {
+        render: () => `
+          <div class="bg-white text-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-100/80 subtle-breath">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">Stocks & Dépôts</span>
+                <h3 class="text-base font-bold text-slate-900 mt-1.5">Valeur & alertes de stock</h3>
+              </div>
+              <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">248 réf.</span>
+            </div>
+
+            <div class="text-2xl font-extrabold text-slate-900 tracking-tight">28 920 000 <span class="text-xs font-semibold text-slate-500">FCFA</span></div>
+            <p class="text-xs text-slate-500 mt-0.5 mb-4">Inventaire physique, codes-barres, péremption & multi-dépôts</p>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="font-semibold text-slate-800">Boutique Centre-Ville</span>
+                <span class="font-bold text-[#0f7646]">Actif</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70">
+                <span class="font-semibold text-amber-800">Alertes seuil & péremption</span>
+                <span class="font-bold text-amber-800">Réapprovisionnement</span>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        render: () => `
+          <div class="bg-white text-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-100/80 subtle-breath">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <span class="text-[11px] font-semibold text-[#0f7646] bg-emerald-50 px-2.5 py-0.5 rounded-full">Caisse POS & Mobile Money</span>
+                <h3 class="text-base font-bold text-slate-900 mt-1.5">Encaissements & crédits</h3>
+              </div>
+              <span class="text-xs font-bold text-[#0f7646] bg-emerald-50 px-2.5 py-1 rounded-full">Détail & Gros</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs mb-3">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div class="text-[11px] text-slate-500">Canaux de paiement</div>
+                <div class="font-bold text-slate-900 mt-0.5">Orange • MTN • Espèces</div>
+              </div>
+              <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/60">
+                <div class="text-[11px] text-[#0f7646]">Acomptes & Échéances</div>
+                <div class="font-bold text-[#0f7646] mt-0.5">Devis, BC, BL & Avoirs</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-500">Envoi factures & reçus par WhatsApp, e-mail ou PDF.</div>
+          </div>
+        `
+      },
+      {
+        render: () => `
+          <div class="bg-white text-slate-900 rounded-2xl p-6 shadow-xl border border-emerald-100/80 subtle-breath">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <span class="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full">Comptabilité & Sécurité</span>
+                <h3 class="text-base font-bold text-slate-900 mt-1.5">Exports Sage & Traçabilité</h3>
+              </div>
+              <span class="text-xs font-bold text-[#0f7646] bg-emerald-50 px-2.5 py-1 rounded-full">CSV / Excel</span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="font-semibold text-slate-800">Journaux Ventes, Achats & Règlements</span>
+                <span class="font-bold text-[#0f7646]">Format Sage</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="font-semibold text-slate-800">Journal d'activité & sauvegarde auto</span>
+                <span class="font-bold text-slate-700">Actif</span>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    ];
+
+    function buildCarouselTrack() {
+      const track = document.getElementById('carousel-track');
+      if (!track) return;
+      track.innerHTML = CAROUSEL_SLIDES.map(slide => `
+        <div class="carousel-slide-item">
+          ${slide.render()}
+        </div>
+      `).join('');
+      updateCarouselPosition();
+    }
+
+    function updateCarouselPosition() {
+      const track = document.getElementById('carousel-track');
+      const dots = document.getElementById('carousel-dots');
+      if (track) {
+        track.style.transform = `translateX(-${carouselIndex * 100}%)`;
+      }
+      if (dots) {
+        dots.innerHTML = CAROUSEL_SLIDES.map((_, idx) => `
+          <button type="button" onclick="goToCarouselSlide(${idx})" aria-label="Afficher l'aperçu ${idx + 1}"
+            class="h-2 rounded-full transition-all duration-500 ${
+              idx === carouselIndex ? 'w-6 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+            }"></button>
+        `).join('');
+      }
+    }
+
+    function goToCarouselSlide(idx) {
+      carouselIndex = (idx + CAROUSEL_SLIDES.length) % CAROUSEL_SLIDES.length;
+      updateCarouselPosition();
+      restartCarouselTimer();
+    }
+
+    function nextCarouselSlide() {
+      goToCarouselSlide(carouselIndex + 1);
+    }
+
+    function prevCarouselSlide() {
+      goToCarouselSlide(carouselIndex - 1);
+    }
+
+    function toggleCarouselAutoplay() {
+      carouselAutoplay = !carouselAutoplay;
+      const btn = document.getElementById('carousel-toggle-btn');
+      if (btn) btn.textContent = carouselAutoplay ? 'Pause' : 'Lecture';
+      restartCarouselTimer();
+    }
+
+    function restartCarouselTimer() {
+      if (carouselTimer) clearInterval(carouselTimer);
+      if (carouselAutoplay) {
+        carouselTimer = setInterval(() => {
+          carouselIndex = (carouselIndex + 1) % CAROUSEL_SLIDES.length;
+          updateCarouselPosition();
+        }, 5500);
+      }
+    }
+
+    // Cartes de démonstration : clic direct pour connecter (sans boutons superflus)
+    function renderDemoAccountCards() {
+      const grid = document.getElementById('demo-accounts-grid');
+      if (!grid) return;
+
+      grid.innerHTML = Object.values(ROLES).map(r => `
+        <button type="button" onclick="selectAndLoginRole('${r.id}')"
+          class="text-left p-4 rounded-xl bg-white border border-slate-200 hover:border-[#0f7646] hover:bg-emerald-50/25 shadow-2xs transition flex flex-col justify-between gap-2 btn-press group">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#0f7646] group-hover:bg-[#0f7646] group-hover:text-white font-bold text-xs flex items-center justify-center transition shrink-0">
+                  ${r.initials}
+                </div>
+                <div>
+                  <div class="text-sm font-bold text-slate-900 leading-tight">${r.title}</div>
+                  <div class="text-[11px] text-slate-400">${r.email}</div>
+                </div>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">${r.badge}</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-snug"><strong class="text-slate-800">Périmètre :</strong> ${r.scopeSummary}</p>
+            <p class="text-[11px] text-slate-500 leading-snug mt-1">${r.restrictionsSummary}</p>
+          </div>
+          <div class="pt-1.5 text-[11px] font-semibold text-[#0f7646] flex items-center justify-between">
+            <span>Cliquer pour se connecter</span>
+            <span>→</span>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function selectAndLoginRole(roleKey) {
+      const role = ROLES[roleKey];
+      if (!role) return;
+      const emailInput = document.getElementById('login-email');
+      const passInput = document.getElementById('login-password');
+      if (emailInput) emailInput.value = role.email;
+      if (passInput) passInput.value = 'demo2026';
+      loginAsRole(roleKey);
+    }
+
+    // =======================================================================
+    // 4. UTILITAIRES, TOASTS & JOURNAL D'AUDIT
+    // =======================================================================
+    function formatFCFA(amount) {
+      return new Intl.NumberFormat('fr-FR').format(Math.round(amount)) + ' FCFA';
+    }
+
+    function formatCompactFCFA(amount) {
+      if (Math.abs(amount) >= 1000000) {
+        return (amount / 1000000).toFixed(1).replace('.', ',') + 'M FCFA';
+      }
+      if (Math.abs(amount) >= 1000) {
+        return Math.round(amount / 1000) + 'k FCFA';
+      }
+      return formatFCFA(amount);
+    }
+
+    function formatFrenchDate() {
+      const d = new Date();
+      const str = d.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function togglePasswordVisibility() {
+      const inp = document.getElementById('login-password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const borderMap = {
+        success: 'border-[#0f7646]',
+        warning: 'border-amber-500',
+        error: 'border-red-500',
+        info: 'border-emerald-500'
+      };
+
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg bg-slate-900 text-white border-l-4 ${borderMap[type] || borderMap.success} text-xs font-medium view-enter`;
+      el.innerHTML = `
+        <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(el);
+
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(6px)';
+        el.style.transition = 'all 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 3000);
+    }
+
+    function logAudit(action, category = 'Action') {
+      const roleObj = state.currentRole || ROLES.gerant;
+      const now = new Date();
+      const stamp = now.toLocaleDateString('fr-FR') + ' ' + now.toTimeString().slice(0, 5);
+      state.auditLogs.unshift({
+        time: stamp,
+        user: roleObj.name,
+        role: roleObj.title,
+        action,
+        category
+      });
+      const autoText = document.getElementById('autosave-text');
+      if (autoText) autoText.textContent = `Sauvegardé (${now.toTimeString().slice(0, 5)})`;
+    }
+
+    function triggerManualBackup() {
+      logAudit('Sauvegarde automatique instantanée exécutée', 'Sauvegarde');
+      showToast('Sauvegarde automatique effectuée avec succès.', 'success');
+      if (state.activeModule === 'securite') renderActiveModule();
+    }
+
+    // =======================================================================
+    // 5. AUTHENTIFICATION, NAVIGATION & CONTRÔLE D'ACCÈS (RBAC)
+    // =======================================================================
+    function handleManualLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.toLowerCase();
+      if (email.includes('caiss')) loginAsRole('caissier');
+      else if (email.includes('magas') || email.includes('stock')) loginAsRole('magasinier');
+      else if (email.includes('compt') || email.includes('sage')) loginAsRole('comptable');
+      else loginAsRole('gerant');
+    }
+
+    function loginAsRole(roleKey) {
+      const role = ROLES[roleKey];
+      if (!role) return;
+
+      state.currentRole = role;
+      state.activeModule = role.defaultModule;
+      state.stockTab = 'catalogue';
+      state.docFilter = 'Tous';
+      state.hoveredPointIndex = null;
+
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+
+      document.getElementById('user-name').textContent = role.name;
+      document.getElementById('user-role-label').textContent = role.title;
+      document.getElementById('user-avatar').textContent = role.initials;
+      document.getElementById('quick-role-switcher').value = roleKey;
+
+
+      logAudit(`Connexion (${role.title})`, 'Sécurité');
+      renderSidebar();
+      renderActiveModule();
+      showToast(`Connecté en tant que ${role.name} (${role.title})`, 'success');
+    }
+
+    function logout() {
+      if (state.currentRole) {
+        logAudit(`Déconnexion (${state.currentRole.title})`, 'Sécurité');
+      }
+      state.currentRole = null;
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      restartCarouselTimer();
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      sidebar.classList.toggle('-translate-x-full');
+      backdrop.classList.toggle('hidden');
+    }
+
+    function changeActiveDepot(depot) {
+      state.activeDepot = depot;
+      showToast(`Périmètre actif : ${depot === 'all' ? 'Tous les dépôts & POS' : depot}`, 'info');
+      renderActiveModule();
+    }
+
+    function navigateTo(moduleId) {
+      if (!state.currentRole || !state.currentRole.allowedModules.includes(moduleId)) {
+        showToast("Accès non autorisé pour ce profil.", 'error');
+        return;
+      }
+      state.activeModule = moduleId;
+      renderSidebar();
+      renderActiveModule();
+
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
+        toggleMobileSidebar();
+      }
+    }
+
+    function renderSidebar() {
+      const nav = document.getElementById('sidebar-nav');
+      const allowed = state.currentRole.allowedModules;
+
+      nav.innerHTML = MODULES_META.filter(m => allowed.includes(m.id)).map(m => {
+        const isActive = state.activeModule === m.id;
+        return `
+          <button onclick="navigateTo('${m.id}')"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium btn-press ${
+              isActive
+                ? 'bg-[#0f7646] text-white shadow-2xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }">
+            <svg class="w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="${m.icon}"/>
+            </svg>
+            <span class="truncate">${m.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderActiveModule() {
+      const container = document.getElementById('main-content');
+      container.classList.remove('view-enter');
+      void container.offsetWidth;
+      container.classList.add('view-enter');
+
+      switch (state.activeModule) {
+        case 'dashboard': container.innerHTML = renderDashboardModule(); break;
+        case 'pos': container.innerHTML = renderPOSModule(); break;
+        case 'documents': container.innerHTML = renderDocumentsModule(); break;
+        case 'stocks': container.innerHTML = renderStocksModule(); break;
+        case 'tiers': container.innerHTML = renderTiersModule(); break;
+        case 'comptabilite': container.innerHTML = renderComptabiliteModule(); break;
+        case 'securite': container.innerHTML = renderSecuriteModule(); break;
+      }
+    }
+
+    // =======================================================================
+    // 6. TABLEAU DE BORD INSPIRÉ DE LA RÉFÉRENCE (GÉRANT & COMPTABLE)
+    // =======================================================================
+    function renderProductBadgeIcon(type, toneClass) {
+      const paths = {
+        shirt: 'M6 4l3 2h6l3-2 3 4-2.5 2L17 9v11H7V9L5.5 10 3 8l3-4z',
+        phone: 'M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2zm4 13h2',
+        wrench: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z',
+        pot: 'M4 11h16v2a6 6 0 01-6 6h-4a6 6 0 01-6-6v-2zm4-4h8M12 4v3',
+        box: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'
+      };
+      return `
+        <div class="w-10 h-10 rounded-xl ${toneClass} flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="${paths[type] || paths.box}"/>
+          </svg>
+        </div>
+      `;
+    }
+
+    function renderSalesLineChart() {
+      const seriesMap = {
+        'Cette semaine': {
+          headline: 4268900,
+          delta: '15,8%',
+          labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+          values: [360000, 500000, 720000, 860000, 1060000, 1240000, 1380000]
+        },
+        'Ce mois': {
+          headline: 12458500,
+          delta: '12,5%',
+          labels: ['S1', 'S2', 'S3', 'S4'],
+          values: [2450000, 2980000, 3310000, 3718500]
+        },
+        'Cette année': {
+          headline: 118400000,
+          delta: '19,4%',
+          labels: ['T1', 'T2', 'T3', 'T4'],
+          values: [24800000, 28600000, 31200000, 33800000]
+        }
+      };
+
+      const current = seriesMap[state.chartRange] || seriesMap['Cette semaine'];
+      const maxVal = Math.max(...current.values) * 1.15;
+      const minVal = 0;
+
+      const svgW = 540;
+      const svgH = 210;
+      const padLeft = 46;
+      const padRight = 18;
+      const padTop = 18;
+      const padBottom = 28;
+      const plotW = svgW - padLeft - padRight;
+      const plotH = svgH - padTop - padBottom;
+
+      const coords = current.values.map((v, i) => {
+        const x = padLeft + (current.values.length === 1 ? plotW / 2 : (i / (current.values.length - 1)) * plotW);
+        const ratio = (v - minVal) / (maxVal - minVal || 1);
+        const y = padTop + plotH - ratio * plotH;
+        return { x, y, v, label: current.labels[i] };
+      });
+
+      let linePath = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const p0 = coords[i];
+        const p1 = coords[i + 1];
+        const cx = ((p0.x + p1.x) / 2).toFixed(1);
+        linePath += ` C ${cx} ${p0.y.toFixed(1)}, ${cx} ${p1.y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+      }
+      const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} L ${coords[0].x.toFixed(1)} ${(padTop + plotH).toFixed(1)} Z`;
+
+      const yTicks = [0, 0.33, 0.66, 1].map(r => {
+        const val = Math.round(maxVal * r);
+        const y = padTop + plotH - r * plotH;
+        return { y, label: val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : `${Math.round(val / 1000)}k` };
+      });
+
+      const activePt = state.hoveredPointIndex !== null ? coords[state.hoveredPointIndex] : null;
+
+      return `
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Évolution des ventes</h2>
+            <p class="text-xs text-slate-500">Chiffre d'affaires sur la période sélectionnée</p>
+          </div>
+          <select onchange="state.chartRange = this.value; state.hoveredPointIndex = null; renderActiveModule();"
+            class="text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 focus:outline-none focus:border-[#0f7646] cursor-pointer">
+            ${Object.keys(seriesMap).map(k => `<option value="${k}" ${state.chartRange === k ? 'selected' : ''}>${k}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="flex items-baseline gap-2.5 mb-4">
+          <span class="text-xl sm:text-2xl font-extrabold text-slate-900">${formatFCFA(current.headline)}</span>
+          <span class="text-xs font-bold text-[#0f7646] flex items-center gap-0.5">↗ ${current.delta}</span>
+        </div>
+
+        <div class="relative w-full">
+          <svg viewBox="0 0 ${svgW} ${svgH}" class="w-full h-52 overflow-visible select-none">
+            <defs>
+              <linearGradient id="dashEmeraldGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#0f7646" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#0f7646" stop-opacity="0.01"/>
+              </linearGradient>
+            </defs>
+
+            ${yTicks.map(t => `
+              <line x1="${padLeft}" y1="${t.y.toFixed(1)}" x2="${svgW - padRight}" y2="${t.y.toFixed(1)}" stroke="#eef2f6" stroke-width="1"/>
+              <text x="${padLeft - 8}" y="${(t.y + 4).toFixed(1)}" text-anchor="end" class="fill-slate-400 text-[10px]">${t.label}</text>
+            `).join('')}
+
+            <path d="${areaPath}" fill="url(#dashEmeraldGrad)"/>
+            <path d="${linePath}" fill="none" stroke="#0f7646" stroke-width="2.5" stroke-linecap="round"/>
+
+            ${coords.map((pt, idx) => {
+              const isHovered = state.hoveredPointIndex === idx;
+              return `
+                <text x="${pt.x.toFixed(1)}" y="${svgH - 6}" text-anchor="middle" class="fill-slate-400 text-[11px] font-medium">${pt.label}</text>
+                <circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="${isHovered ? 6.5 : 4.5}"
+                  fill="${isHovered ? '#0f7646' : '#ffffff'}" stroke="#0f7646" stroke-width="2.2"
+                  class="cursor-pointer transition-all duration-150"
+                  onmouseenter="state.hoveredPointIndex = ${idx}; renderActiveModule();"
+                  onmouseleave="state.hoveredPointIndex = null; renderActiveModule();"/>
+              `;
+            }).join('')}
+          </svg>
+
+          ${activePt ? `
+            <div class="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-sm">
+              <span class="text-emerald-300 font-bold">${activePt.label} :</span>
+              <span>${formatFCFA(activePt.v)}</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderDashboardModule() {
+      const canSell = state.currentRole.permissions.canProcessPOS;
+      const totalStockValue = state.products.reduce((acc, p) => acc + (p.stock * p.buyPrice), 0);
+      const alertProducts = state.products.filter(p => p.stock <= p.minStock);
+      const ruptureCount = state.products.filter(p => p.stock === 0).length;
+      const lowCount = alertProducts.length - ruptureCount;
+
+      const topSelling = [...state.products]
+        .sort((a, b) => b.revenueTotal - a.revenueTotal)
+        .slice(0, 4);
+
+      const recentSales = state.documents.slice(0, 4);
+      const stockAlertsList = alertProducts.slice(0, 3);
+
+      return `
+        <!-- En-tête de page lumineux -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="text-xs font-medium text-slate-400">${formatFrenchDate()}</div>
+            <h1 class="text-2xl sm:text-[28px] font-extrabold text-slate-900 tracking-tight mt-0.5">
+              Bonjour, ${state.currentRole.firstName}
+            </h1>
+          </div>
+
+          <div class="flex items-center gap-2.5 self-start sm:self-auto">
+            <button onclick="navigateTo('comptabilite')"
+              class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-semibold flex items-center gap-2 btn-press">
+              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              <span>Exporter</span>
+            </button>
+
+            ${canSell ? `
+              <button onclick="navigateTo('pos')"
+                class="px-4 py-2.5 rounded-xl bg-[#0f7646] hover:bg-[#0b5a35] text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs btn-press">
+                <span class="text-base leading-none">+</span>
+                <span>Nouvelle vente</span>
+              </button>
+            ` : `
+              <button onclick="navigateTo('comptabilite')"
+                class="px-4 py-2.5 rounded-xl bg-[#0f7646] hover:bg-[#0b5a35] text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-2xs btn-press">
+                <span>Export Sage</span>
+              </button>
+            `}
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards avec icônes pastel douces -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          <!-- KPI 1 : Chiffre d'affaires -->
+          <div class="ref-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs sm:text-sm font-medium text-slate-500">Chiffre d'affaires</span>
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 text-[#0f7646] flex items-center justify-center font-bold text-sm">$</div>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              12 458 500 <span class="text-xs font-semibold text-slate-400">FCFA</span>
+            </div>
+            <div class="mt-2 text-xs font-medium text-slate-500">
+              <span class="text-[#0f7646] font-bold">↗ +12,5%</span> ce mois
+            </div>
+          </div>
+
+          <!-- KPI 2 : Bénéfice net estimé -->
+          <div class="ref-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs sm:text-sm font-medium text-slate-500">Bénéfice net estimé</span>
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              </div>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              3 284 200 <span class="text-xs font-semibold text-slate-400">FCFA</span>
+            </div>
+            <div class="mt-2 text-xs font-medium text-slate-500">
+              <span class="text-[#0f7646] font-bold">↗ +8,2%</span> marge nette
+            </div>
+          </div>
+
+          <!-- KPI 3 : Valeur du stock -->
+          <div class="ref-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs sm:text-sm font-medium text-slate-500">Valeur du stock</span>
+              <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              </div>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              ${formatFCFA(totalStockValue).replace(' FCFA', '')} <span class="text-xs font-semibold text-slate-400">FCFA</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-500">
+              <strong class="text-slate-700">${state.products.length} références</strong> suivies
+            </div>
+          </div>
+
+          <!-- KPI 4 : Alertes stock -->
+          <div class="ref-card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs sm:text-sm font-medium text-slate-500">Alertes stock</span>
+              <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">!</div>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              ${alertProducts.length} <span class="text-sm font-semibold text-slate-600">produits</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-500">
+              <span class="text-amber-700 font-semibold">${ruptureCount} ruptures</span> • ${lowCount} seuil bas
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Principale 2 Colonnes : Courbe Évolution + Produits les plus vendus -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          <div class="lg:col-span-7 ref-card rounded-2xl p-5 sm:p-6">
+            ${renderSalesLineChart()}
+          </div>
+
+          <div class="lg:col-span-5 ref-card rounded-2xl p-5 sm:p-6 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="text-base font-bold text-slate-900">Produits les plus vendus</h2>
+                  <p class="text-xs text-slate-500">Ce mois-ci</p>
+                </div>
+                <button onclick="navigateTo('documents')" class="text-xs font-semibold text-[#0f7646] hover:underline">Voir tout</button>
+              </div>
+
+              <div class="divide-y divide-slate-100">
+                ${topSelling.map(p => `
+                  <div class="py-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      ${renderProductBadgeIcon(p.iconType, p.iconTone)}
+                      <div class="min-w-0">
+                        <div class="text-xs sm:text-sm font-bold text-slate-900 truncate">${p.name}</div>
+                        <div class="text-[11px] text-slate-400">${p.ref} • ${p.soldCount} vendus</div>
+                      </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div class="text-xs sm:text-sm font-extrabold text-slate-900">${formatCompactFCFA(p.revenueTotal).replace(' FCFA', '')}</div>
+                      <div class="text-[10px] font-semibold text-slate-400">FCFA</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Inférieure 2 Colonnes : Ventes récentes + Alertes de stock -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 ref-card rounded-2xl p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Ventes récentes</h2>
+                <p class="text-xs text-slate-500">Dernières transactions enregistrées</p>
+              </div>
+              <button onclick="navigateTo('documents')" class="text-xs font-semibold text-[#0f7646] hover:underline">Voir tout</button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-100 text-[11px] font-semibold text-slate-400">
+                    <th class="pb-2.5 pr-3">Facture</th>
+                    <th class="pb-2.5 px-3">Client</th>
+                    <th class="pb-2.5 px-3">Date</th>
+                    <th class="pb-2.5 px-3 text-right">Total</th>
+                    <th class="pb-2.5 pl-3 text-right">Statut</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                  ${recentSales.map(d => {
+                    const statusBadge = d.status === 'Payé' || d.status === 'Livré' || d.status === 'Confirmé'
+                      ? 'bg-emerald-50 text-[#0f7646]'
+                      : (d.status === 'Échelonné' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600');
+                    return `
+                      <tr>
+                        <td class="py-3 pr-3 font-bold text-slate-900 whitespace-nowrap">${d.id}</td>
+                        <td class="py-3 px-3 text-slate-700 truncate max-w-[150px]">${d.client}</td>
+                        <td class="py-3 px-3 text-slate-400 whitespace-nowrap">${d.date}</td>
+                        <td class="py-3 px-3 text-right font-bold text-slate-900 whitespace-nowrap">${formatFCFA(d.total)}</td>
+                        <td class="py-3 pl-3 text-right whitespace-nowrap">
+                          <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusBadge}">${d.status}</span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 ref-card rounded-2xl p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Alertes de stock</h2>
+                <p class="text-xs text-slate-500">Produits à réapprovisionner</p>
+              </div>
+              <button onclick="navigateTo('tiers')" class="text-xs font-semibold text-[#0f7646] hover:underline">Fournisseurs</button>
+            </div>
+
+            <div class="space-y-3">
+              ${stockAlertsList.map(p => `
+                <div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-slate-900 truncate">${p.name}</div>
+                    <div class="text-[11px] text-slate-400">${p.ref} • Seuil min : ${p.minStock}</div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ${
+                    p.stock === 0 ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                  }">
+                    ${p.stock === 0 ? 'Rupture' : `${p.stock} restants`}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =======================================================================
+    // 7. MODULE CAISSE / POS RAPIDE (CAISSIER & GÉRANT)
+    // =======================================================================
+    function renderPOSModule() {
+      const categories = ['Toutes', ...new Set(state.products.map(p => p.category))];
+      const filteredProducts = state.products.filter(p => {
+        const matchCat = state.posCategory === 'Toutes' || p.category === state.posCategory;
+        const q = state.posSearch.toLowerCase();
+        const matchQuery = !q || p.name.toLowerCase().includes(q) || p.barcode.includes(q) || p.ref.toLowerCase().includes(q);
+        return matchCat && matchQuery;
+      });
+
+      const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const total = Math.max(0, subtotal - state.posDiscount);
+      const remainingDue = state.posIsCredit ? Math.max(0, total - state.posAdvancePaid) : 0;
+      const installmentAmount = state.posIsCredit && state.posInstallments > 0 ? Math.round(remainingDue / state.posInstallments) : 0;
+
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">Caisse / Point de Vente (POS)</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Vente rapide, détail/gros, devis/BC/factures/BL, remises, acomptes & paiements MoMo</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 xl:col-span-8 space-y-4">
+            <div class="ref-card p-4 rounded-2xl space-y-3">
+              <div class="flex flex-col sm:flex-row gap-3 justify-between">
+                <div class="relative flex-1">
+                  <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                  <input type="text" value="${state.posSearch}" oninput="updatePosSearch(this.value)"
+                    placeholder="Rechercher ou scanner code-barres (ex: 613001001)..."
+                    class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#0f7646]">
+                </div>
+
+                <div class="inline-flex rounded-xl bg-slate-100 p-1 shrink-0">
+                  <button onclick="setPosPriceTier('detail')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${state.posPriceTier === 'detail' ? 'bg-white text-[#0f7646] shadow-2xs' : 'text-slate-600'}">
+                    Détail
+                  </button>
+                  <button onclick="setPosPriceTier('gros')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${state.posPriceTier === 'gros' ? 'bg-white text-[#0f7646] shadow-2xs' : 'text-slate-600'}">
+                    Gros
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                ${categories.map(cat => `
+                  <button onclick="setPosCategory('${cat}')"
+                    class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                      state.posCategory === cat ? 'bg-[#0f7646] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    }">
+                    ${cat}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+              ${filteredProducts.map(p => {
+                const price = state.posPriceTier === 'detail' ? p.retailPrice : p.wholesalePrice;
+                const outOfStock = p.stock <= 0;
+                const lowStock = !outOfStock && p.stock <= p.minStock;
+                return `
+                  <button onclick="addToCart('${p.id}')" ${outOfStock ? 'disabled' : ''}
+                    class="text-left p-4 rounded-2xl ref-card btn-press flex flex-col justify-between ${
+                      outOfStock ? 'opacity-55 cursor-not-allowed' : 'hover:border-[#0f7646]'
+                    }">
+                    <div>
+                      <div class="flex items-center justify-between gap-2 mb-2.5">
+                        ${renderProductBadgeIcon(p.iconType, p.iconTone)}
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                          outOfStock ? 'bg-red-50 text-red-700' : (lowStock ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-[#0f7646]')
+                        }">
+                          ${outOfStock ? 'Rupture' : `Stock : ${p.stock}`}
+                        </span>
+                      </div>
+                      <h3 class="font-bold text-slate-900 text-sm">${p.name}</h3>
+                      <div class="text-[11px] text-slate-400 mt-0.5">${p.ref} • CB: ${p.barcode}</div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-extrabold text-slate-900">${formatFCFA(price)}</div>
+                        <div class="text-[10px] text-slate-400">${state.posPriceTier === 'detail' ? 'Prix détail' : 'Prix gros'}</div>
+                      </div>
+                      <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#0f7646] flex items-center justify-center font-bold text-lg">+</span>
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Panier & Encaissement -->
+          <div class="lg:col-span-5 xl:col-span-4">
+            <div class="ref-card rounded-2xl p-4 sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <span>Ticket de vente</span>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-[#0f7646]">${state.cart.reduce((s, i) => s + i.qty, 0)} art.</span>
+                </h2>
+                ${state.cart.length > 0 ? `<button onclick="clearCart()" class="text-xs text-slate-400 hover:text-red-600 font-medium">Vider</button>` : ''}
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">Client</label>
+                  <select onchange="state.posClientId = this.value" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800">
+                    ${state.clients.map(c => `<option value="${c.id}" ${state.posClientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">Type document</label>
+                  <select onchange="state.posDocType = this.value" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800">
+                    <option value="Facture" ${state.posDocType === 'Facture' ? 'selected' : ''}>Facture</option>
+                    <option value="Devis" ${state.posDocType === 'Devis' ? 'selected' : ''}>Devis</option>
+                    <option value="Bon de commande" ${state.posDocType === 'Bon de commande' ? 'selected' : ''}>Bon de commande</option>
+                    <option value="Bon de livraison" ${state.posDocType === 'Bon de livraison' ? 'selected' : ''}>Bon de livraison</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
+                ${state.cart.length === 0 ? `
+                  <div class="py-8 text-center text-slate-400 text-xs">Cliquez sur un produit pour l'ajouter au ticket.</div>
+                ` : state.cart.map(item => `
+                  <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-bold text-slate-800 truncate">${item.name}</div>
+                      <div class="text-[11px] text-slate-500">${formatFCFA(item.price)} x ${item.qty}</div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <button onclick="updateCartQty('${item.id}', -1)" class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs btn-press">-</button>
+                      <span class="text-xs font-bold w-5 text-center">${item.qty}</span>
+                      <button onclick="updateCartQty('${item.id}', 1)" class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs btn-press">+</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="border-t border-slate-100 pt-3 space-y-2 text-xs">
+                <div class="flex justify-between text-slate-500">
+                  <span>Sous-total</span>
+                  <span class="font-semibold text-slate-800">${formatFCFA(subtotal)}</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-500">
+                  <span>Remise / Promo (FCFA)</span>
+                  <input type="number" min="0" step="500" value="${state.posDiscount}" oninput="state.posDiscount = Number(this.value) || 0; renderActiveModule();"
+                    class="w-24 text-right px-2 py-1 rounded-lg border border-slate-200 font-semibold text-slate-800">
+                </div>
+                <div class="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-100">
+                  <span>Total net</span>
+                  <span class="text-[#0f7646]">${formatFCFA(total)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">Mode de règlement</label>
+                <div class="grid grid-cols-2 gap-2">
+                  ${['Espèces', 'Orange Money', 'MTN MoMo', 'Virement'].map(m => `
+                    <button type="button" onclick="state.posPaymentMethod = '${m}'; renderActiveModule();"
+                      class="py-2 px-2.5 rounded-xl border text-xs font-semibold transition ${
+                        state.posPaymentMethod === m ? 'border-[#0f7646] bg-emerald-50 text-[#0f7646]' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }">
+                      ${m}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/75 space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                  <input type="checkbox" ${state.posIsCredit ? 'checked' : ''} onchange="state.posIsCredit = this.checked; state.posAdvancePaid = 0; renderActiveModule();" class="rounded text-[#0f7646]">
+                  <span>Crédit / Acompte / Échelonné</span>
+                </label>
+                ${state.posIsCredit ? `
+                  <div class="pt-1 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-600">Acompte versé :</span>
+                      <input type="number" min="0" max="${total}" value="${state.posAdvancePaid}" oninput="state.posAdvancePaid = Number(this.value) || 0; renderActiveModule();"
+                        class="w-28 text-right px-2 py-1 rounded-lg border border-slate-300 bg-white font-bold text-slate-900">
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-600">Échéances :</span>
+                      <select onchange="state.posInstallments = Number(this.value); renderActiveModule();" class="px-2 py-1 rounded-lg border border-slate-300 bg-white font-semibold">
+                        <option value="2" ${state.posInstallments === 2 ? 'selected' : ''}>2 tranches</option>
+                        <option value="3" ${state.posInstallments === 3 ? 'selected' : ''}>3 tranches</option>
+                        <option value="4" ${state.posInstallments === 4 ? 'selected' : ''}>4 tranches</option>
+                      </select>
+                    </div>
+                    <div class="flex justify-between font-bold text-amber-800 pt-1">
+                      <span>Reste (${installmentAmount.toLocaleString('fr-FR')}/tr.) :</span>
+                      <span>${formatFCFA(remainingDue)}</span>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+
+              <button onclick="checkoutPOS()" ${state.cart.length === 0 ? 'disabled' : ''}
+                class="w-full py-3 px-4 rounded-xl bg-[#0f7646] hover:bg-[#0b5a35] text-white font-semibold text-xs sm:text-sm disabled:opacity-40 transition btn-press">
+                Valider ${state.posDocType} & Reçu
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updatePosSearch(val) {
+      state.posSearch = val;
+      const exactBarcode = state.products.find(p => p.barcode === val.trim() && p.stock > 0);
+      if (exactBarcode) {
+        addToCart(exactBarcode.id);
+        state.posSearch = '';
+        showToast(`Article ajouté par code-barres : ${exactBarcode.name}`, 'info');
+      }
+      renderActiveModule();
+    }
+
+    function setPosPriceTier(tier) {
+      state.posPriceTier = tier;
+      state.cart.forEach(item => {
+        const prod = state.products.find(p => p.id === item.id);
+        if (prod) item.price = tier === 'detail' ? prod.retailPrice : prod.wholesalePrice;
+      });
+      renderActiveModule();
+    }
+
+    function setPosCategory(cat) {
+      state.posCategory = cat;
+      renderActiveModule();
+    }
+
+    function addToCart(productId) {
+      const prod = state.products.find(p => p.id === productId);
+      if (!prod || prod.stock <= 0) return;
+
+      const existing = state.cart.find(c => c.id === productId);
+      const unitPrice = state.posPriceTier === 'detail' ? prod.retailPrice : prod.wholesalePrice;
+
+      if (existing) {
+        if (existing.qty < prod.stock) existing.qty += 1;
+        else {
+          showToast(`Stock maximum atteint (${prod.stock})`, 'warning');
+          return;
+        }
+      } else {
+        state.cart.push({ id: prod.id, name: prod.name, price: unitPrice, qty: 1 });
+      }
+      renderActiveModule();
+    }
+
+    function updateCartQty(productId, delta) {
+      const idx = state.cart.findIndex(c => c.id === productId);
+      if (idx === -1) return;
+      const prod = state.products.find(p => p.id === productId);
+      const newQty = state.cart[idx].qty + delta;
+      if (newQty <= 0) state.cart.splice(idx, 1);
+      else if (prod && newQty <= prod.stock) state.cart[idx].qty = newQty;
+      else showToast('Quantité supérieure au stock disponible', 'warning');
+      renderActiveModule();
+    }
+
+    function clearCart() {
+      state.cart = [];
+      state.posDiscount = 0;
+      state.posIsCredit = false;
+      state.posAdvancePaid = 0;
+      renderActiveModule();
+    }
+
+    function checkoutPOS() {
+      const subtotal = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const total = Math.max(0, subtotal - state.posDiscount);
+      const isQuote = state.posDocType === 'Devis';
+      const paid = isQuote ? 0 : (state.posIsCredit ? Math.min(total, state.posAdvancePaid) : total);
+      const remaining = isQuote ? 0 : (total - paid);
+      const client = state.clients.find(c => c.id === state.posClientId);
+
+      const prefixMap = { Facture: 'FAC', Devis: 'DEV', 'Bon de commande': 'BC', 'Bon de livraison': 'BL' };
+      const docId = `${prefixMap[state.posDocType] || 'DOC'}-2026-${Math.floor(110 + Math.random() * 880)}`;
+
+      if (!isQuote) {
+        state.cart.forEach(item => {
+          const prod = state.products.find(p => p.id === item.id);
+          if (prod) {
+            prod.stock = Math.max(0, prod.stock - item.qty);
+            prod.soldCount += item.qty;
+            prod.revenueTotal += item.price * item.qty;
+            state.stockMovements.unshift({
+              id: 'MVT-' + Math.floor(510 + Math.random() * 480),
+              date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toTimeString().slice(0, 5),
+              product: prod.name,
+              type: `Sortie (${state.posDocType})`,
+              qty: -item.qty,
+              depot: state.activeDepot === 'all' ? prod.depot : state.activeDepot,
+              user: `${state.currentRole.name} (${state.currentRole.title})`
+            });
+          }
+        });
+
+        if (client) {
+          client.totalPurchases += total;
+          if (remaining > 0) client.debt += remaining;
+        }
+      }
+
+      const newDoc = {
+        id: docId,
+        type: state.posDocType,
+        date: new Date().toLocaleDateString('fr-FR'),
+        client: client ? client.name : 'Client Comptoir',
+        total,
+        paid,
+        method: state.posPaymentMethod,
+        status: isQuote ? 'En attente' : (remaining > 0 ? 'Échelonné' : 'Payé'),
+        itemsSummary: state.cart.map(i => `${i.qty}x ${i.name}`).join(', '),
+        cartSnapshot: [...state.cart]
+      };
+      state.documents.unshift(newDoc);
+
+      logAudit(`${state.posDocType} ${docId} généré (${formatFCFA(total)})`, 'Vente');
+      clearCart();
+      openReceiptModal(newDoc);
+    }
+
+    function openReceiptModal(doc) {
+      const modal = document.getElementById('modal-box');
+      const itemsHtml = doc.cartSnapshot
+        ? doc.cartSnapshot.map(i => `<div class="flex justify-between text-xs py-1"><span>${i.qty}x ${i.name}</span><span class="font-semibold">${formatFCFA(i.price * i.qty)}</span></div>`).join('')
+        : `<div class="text-xs py-1 text-slate-600">${doc.itemsSummary}</div>`;
+
+      modal.innerHTML = `
+        <div id="printable-receipt" class="p-6">
+          <div class="text-center border-b border-dashed border-slate-200 pb-4 mb-4">
+            <div class="font-extrabold text-lg text-slate-900">StockFlow Distribution</div>
+            <div class="text-xs text-slate-500">Cameroun • FCFA</div>
+            <div class="mt-2 inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#0f7646] text-xs font-bold">${doc.type.toUpperCase()} N° ${doc.id}</div>
+          </div>
+
+          <div class="flex justify-between text-xs text-slate-500 mb-2">
+            <span>Date : ${doc.date}</span>
+            <span>Règlement : <strong class="text-slate-800">${doc.method}</strong></span>
+          </div>
+          <div class="text-xs text-slate-700 mb-3">Client : <strong class="text-slate-900">${doc.client}</strong></div>
+
+          <div class="border-y border-slate-100 py-2.5 my-3 space-y-1">${itemsHtml}</div>
+
+          <div class="space-y-1 text-xs">
+            <div class="flex justify-between font-extrabold text-sm text-slate-900">
+              <span>TOTAL</span>
+              <span>${formatFCFA(doc.total)}</span>
+            </div>
+            <div class="flex justify-between text-[#0f7646] font-semibold">
+              <span>Payé</span>
+              <span>${formatFCFA(doc.paid)}</span>
+            </div>
+            ${(doc.total - doc.paid) > 0 && doc.type !== 'Devis' ? `
+              <div class="flex justify-between text-amber-700 font-bold">
+                <span>Reste à régler</span>
+                <span>${formatFCFA(doc.total - doc.paid)}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap gap-2">
+            <button onclick="sendReceiptChannel('WhatsApp', '${doc.id}')" class="px-3 py-2 rounded-xl bg-[#0f7646] hover:bg-[#0b5a35] text-white text-xs font-semibold btn-press">WhatsApp</button>
+            <button onclick="sendReceiptChannel('E-mail', '${doc.id}')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold btn-press">E-mail</button>
+            <button onclick="window.print()" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold btn-press">PDF / Imprimer</button>
+          </div>
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold btn-press">Fermer</button>
+        </div>
+      `;
+      document.getElementById('modal-backdrop').classList.remove('hidden');
+    }
+
+    function sendReceiptChannel(channel, docId) {
+      logAudit(`Envoi ${docId} via ${channel}`, 'Communication');
+      showToast(`Document ${docId} envoyé par ${channel}.`, 'success');
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target.id === 'modal-backdrop') closeModal();
+    }
+
+    function closeModal() {
+      document.getElementById('modal-backdrop').classList.add('hidden');
+    }
+
+    // =======================================================================
+    // 8. MODULE DOCUMENTS, BL & RETOURS/AVOIRS
+    // =======================================================================
+    function renderDocumentsModule() {
+      const roleId = state.currentRole.id;
+      const isMagasinier = roleId === 'magasinier';
+      const canCreateReturn = state.currentRole.permissions.canProcessPOS;
+
+      const filters = isMagasinier
+        ? ['Tous', 'Bon de livraison', 'Bon de commande']
+        : ['Tous', 'Facture', 'Devis', 'Bon de commande', 'Bon de livraison', 'Avoir / Retour'];
+
+      const docs = state.documents.filter(d => {
+        if (isMagasinier && !['Bon de livraison', 'Bon de commande'].includes(d.type)) return false;
+        if (state.docFilter !== 'Tous' && d.type !== state.docFilter) return false;
+        return true;
+      });
+
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">
+              ${isMagasinier ? 'Bons de Livraison & Commandes' : 'Factures, Devis, BL & Avoirs'}
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+              ${isMagasinier ? 'Suivi des livraisons et réceptions de marchandises' : 'Suivi des documents commerciaux, règlements et retours/avoirs'}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 bg-white p-1 rounded-xl border border-slate-200">
+            ${filters.map(f => `
+              <button onclick="state.docFilter = '${f}'; renderActiveModule();"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  state.docFilter === f ? 'bg-[#0f7646] text-white' : 'text-slate-600 hover:bg-slate-100'
+                }">
+                ${f}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="ref-card rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th class="py-3.5 px-4">Pièce</th>
+                  <th class="py-3.5 px-4">Type</th>
+                  <th class="py-3.5 px-4">Client</th>
+                  <th class="py-3.5 px-4">Détails</th>
+                  ${!isMagasinier ? `<th class="py-3.5 px-4">Total</th>` : ''}
+                  <th class="py-3.5 px-4">Statut</th>
+                  <th class="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-xs">
+                ${docs.map(d => {
+                  const badgeStyle = {
+                    'Payé': 'bg-emerald-50 text-[#0f7646]',
+                    'Livré': 'bg-emerald-50 text-[#0f7646]',
+                    'Confirmé': 'bg-emerald-50 text-[#0f7646]',
+                    'Échelonné': 'bg-amber-50 text-amber-700',
+                    'En attente': 'bg-slate-100 text-slate-600',
+                    'Remboursé': 'bg-red-50 text-red-700'
+                  };
+                  return `
+                    <tr class="hover:bg-slate-50/70 transition">
+                      <td class="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">${d.id}<div class="text-[10px] font-normal text-slate-400">${d.date}</div></td>
+                      <td class="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">${d.type}</td>
+                      <td class="py-3.5 px-4 font-semibold text-slate-800">${d.client}</td>
+                      <td class="py-3.5 px-4 text-slate-500 max-w-xs truncate">${d.itemsSummary}</td>
+                      ${!isMagasinier ? `
+                        <td class="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                          ${formatFCFA(d.total)}
+                          <div class="text-[10px] font-normal text-slate-400">${d.method}</div>
+                        </td>
+                      ` : ''}
+                      <td class="py-3.5 px-4 whitespace-nowrap">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${badgeStyle[d.status] || 'bg-slate-100 text-slate-700'}">
+                          ${d.status}
+                        </span>
+                      </td>
+                      <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                        ${d.type === 'Facture' && canCreateReturn ? `
+                          <button onclick="openReturnModal('${d.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold btn-press">
+                            Retour / Avoir
+                          </button>
+                        ` : ''}
+                        <button onclick='openReceiptModal(${JSON.stringify(d).replace(/'/g, "&apos;")})' class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold btn-press">
+                          Aperçu
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openReturnModal(invoiceId) {
+      const doc = state.documents.find(d => d.id === invoiceId);
+      if (!doc) return;
+      const modal = document.getElementById('modal-box');
+      modal.innerHTML = `
+        <div class="p-6 space-y-4">
+          <h2 class="text-lg font-bold text-slate-900">Retour & Émission d'Avoir</h2>
+          <p class="text-xs text-slate-500">Facture : <strong class="text-slate-800">${doc.id}</strong> (${doc.client})</p>
+          <form onsubmit="submitReturnCreditNote(event, '${doc.id}')" class="space-y-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Montant de l'avoir (FCFA)</label>
+              <input type="number" id="ret-amount" min="500" max="${Math.abs(doc.total)}" value="${Math.round(Math.abs(doc.total) * 0.2)}" required
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold text-slate-900">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Motif</label>
+              <input type="text" id="ret-reason" value="Retour marchandise client" required
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800">
+            </div>
+            <div class="pt-2 flex justify-end gap-2">
+              <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold">Annuler</button>
+              <button type="submit" class="px-4 py-2 rounded-xl bg-[#0f7646] hover:bg-[#0b5a35] text-white font-semibold">Valider l'Avoir</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.getElementById('modal-backdrop').classList.remove('hidden');
+    }
+
+    function submitReturnCreditNote(e, invoiceId) {
+      e.preventDefault();
+      const doc = state.documents.find(d => d.id === invoiceId);
+      const amount = Number(document.getElementById('ret-amount').value) || 0;
+      const reason = document.getElementById('ret-reason').value;
+      const avoirId = `AV-2026-${Math.floor(10 + Math.random() * 89)}`;
+
+      state.documents.unshift({
+        id: avoirId,
+        type: 'Avoir / Retour',
+        date: new Date().toLocaleDateString('fr-FR'),
+        client: doc ? doc.client : 'Client',
+        total: -amount,
+        paid: -amount,
+        method: doc ? doc.method : 'Espèces',
+        status: 'Remboursé',
+        itemsSummary: `${reason} (${invoiceId})`
+      });
+
+      logAudit(`Avoir ${avoirId} (-${formatFCFA(amount)}) sur ${invoiceId}`, 'Retour');
+      closeModal();
+      showToast(`Avoir ${avoirId} enregistré.`, 'success');
+      renderActiveModule();
+    }
+
+    // =======================================================================
+    // 9. MODULE STOCKS, MULTI-DÉPÔTS & INVENTAIRE (MAGASINIER & GÉRANT)
+    // =======================================================================
+    function renderStocksModule() {
+      const perms = state.currentRole.permissions;
+      const visibleProducts = state.products.filter(p => state.activeDepot === 'all' || p.depot === state.activeDepot);
+
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">Gestion des Stocks & Inventaire</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Fiches produits, codes-barres, péremption, alertes seuil, dépôts & inventaire physique</p>
+          </div>
+          ${perms.canAdjustStock ? `
+            <button onclick="openStockMovementModal()" class="px-4 py-2.5 bg-[#0f7646] hover:bg-[#0b5a35] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 btn-press self-start sm:self-auto">
+              <span>+</span>
+              <span>Mouvement de stock</span>
+            </button>
+          ` : ''}
+        </div>
+
+        <div class="flex flex-wrap gap-4 border-b border-slate-200 mb-6">
+          <button onclick="state.stockTab = 'catalogue'; renderActiveModule();" class="pb-3 px-1 text-xs sm:text-sm font-semibold border-b-2 transition ${state.stockTab === 'catalogue' ? 'border-[#0f7646] text-[#0f7646]' : 'border-transparent text-slate-500 hover:text-slate-800'}">
+            Fiches Produits (${visibleProducts.length})
+          </button>
+          ${perms.canAdjustStock ? `
+            <button onclick="state.stockTab = 'inventaire'; renderActiveModule();" class="pb-3 px-1 text-xs sm:text-sm font-semibold border-b-2 transition ${state.stockTab === 'inventaire' ? 'border-[#0f7646] text-[#0f7646]' : 'border-transparent text-slate-500 hover:text-slate-800'}">
+              Inventaire & Écarts
+            </button>
+          ` : ''}
+          <button onclick="state.stockTab = 'mouvements'; renderActiveModule();" class="pb-3 px-1 text-xs sm:text-sm font-semibold border-b-2 transition ${state.stockTab === 'mouvements' ? 'border-[#0f7646] text-[#0f7646]' : 'border-transparent text-slate-500 hover:text-slate-800'}">
+            Historique Mouvements
+          </button>
+        </div>
+
+        ${state.stockTab === 'catalogue' ? `
+          <div class="ref-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th class="py-3.5 px-4">Produit</th>
+                    <th class="py-3.5 px-4">Dépôt</th>
+                    ${perms.canSeePurchasePrice ? `<th class="py-3.5 px-4">Prix Achat</th>` : ''}
+                    <th class="py-3.5 px-4">Stock & Seuil</th>
+                    <th class="py-3.5 px-4">Péremption</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                  ${visibleProducts.map(p => {
+                    const isCritical = p.stock <= p.minStock;
+                    const isExpiring = p.expiry.startsWith('2026-11') || p.expiry.startsWith('2026-12');
+                    return `
+                      <tr class="hover:bg-slate-50/70 transition">
+                        <td class="py-3.5 px-4">
+                          <div class="flex items-center gap-3">
+                            ${renderProductBadgeIcon(p.iconType, p.iconTone)}
+                            <div>
+                              <div class="font-bold text-slate-900">${p.name}</div>
+                              <div class="text-[11px] text-slate-400">${p.ref} • CB: ${p.barcode} • ${p.category}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-700 font-medium">${p.depot}</td>
+                        ${perms.canSeePurchasePrice ? `<td class="py-3.5 px-4 font-semibold text-slate-700">${formatFCFA(p.buyPrice)}</td>` : ''}
+                        <td class="py-3.5 px-4">
+                          <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-sm text-slate-900">${p.stock}</span>
+                            ${p.stock === 0
+                              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700">Rupture</span>`
+                              : (isCritical ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">Seuil min (${p.minStock})</span>` : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-[#0f7646]">OK</span>`)}
+                          </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                          <span class="px-2 py-0.5 rounded-md text-[11px] ${isExpiring ? 'bg-amber-50 text-amber-800 font-bold' : 'text-slate-600'}">
+                            ${p.expiry} ${isExpiring ? '• Proche' : ''}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ` : ''}
+
+        ${state.stockTab === 'inventaire' && perms.canAdjustStock ? `
+          <div class="ref-card p-5 rounded-2xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="font-bold text-slate-900 text-sm sm:text-base">Inventaire Physique & Correction des Écarts</h2>
+                <p class="text-xs text-slate-500">Saisissez les quantités comptées pour mettre à jour le stock théorique.</p>
+              </div>
+              <button onclick="applyPhysicalInventory()" class="px-4 py-2 bg-[#0f7646] hover:bg-[#0b5a35] text-white rounded-xl text-xs font-semibold btn-press">
+                Valider l'inventaire
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/80 text-[11px] font-bold uppercase text-slate-500">
+                    <th class="py-3 px-4">Article</th>
+                    <th class="py-3 px-4">Théorique</th>
+                    <th class="py-3 px-4">Physique</th>
+                    <th class="py-3 px-4">Écart</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                  ${visibleProducts.map(p => `
+                    <tr>
+                      <td class="py-3 px-4 font-bold text-slate-800">${p.name} <span class="font-normal text-slate-400">(${p.ref})</span></td>
+                      <td class="py-3 px-4 font-semibold text-slate-700">${p.stock}</td>
+                      <td class="py-3 px-4">
+                        <input type="number" min="0" value="${p.stock}" data-prod-id="${p.id}" data-theo="${p.stock}"
+                          oninput="updateInventoryDiffPreview(this)"
+                          class="inv-input w-24 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-slate-900">
+                      </td>
+                      <td id="diff-${p.id}" class="py-3 px-4 font-bold text-slate-400">0</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ` : ''}
+
+        ${state.stockTab === 'mouvements' ? `
+          <div class="ref-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase text-slate-500">
+                    <th class="py-3.5 px-4">Date & Heure</th>
+                    <th class="py-3.5 px-4">Produit</th>
+                    <th class="py-3.5 px-4">Mouvement</th>
+                    <th class="py-3.5 px-4">Quantité</th>
+                    <th class="py-3.5 px-4">Dépôt</th>
+                    <th class="py-3.5 px-4">Opérateur</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                  ${state.stockMovements.map(m => `
+                    <tr>
+                      <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap">${m.date}</td>
+                      <td class="py-3.5 px-4 font-bold text-slate-800">${m.product}</td>
+                      <td class="py-3.5 px-4 font-medium text-slate-700">${m.type}</td>
+                      <td class="py-3.5 px-4 font-bold ${m.qty > 0 ? 'text-[#0f7646]' : 'text-slate-900'}">${m.qty > 0 ? '+' + m.qty : m.qty}</td>
+                      <td class="py-3.5 px-4 text-slate-600">${m.depot}</td>
+                      <td class="py-3.5 px-4 text-slate-600">${m.user}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function updateInventoryDiffPreview(input) {
+      const prodId = input.dataset.prodId;
+      const theo = Number(input.dataset.theo);
+      const diff = Number(input.value) - theo;
+      const cell = document.getElementById(`diff-${prodId}`);
+      if (!cell) return;
+      if (diff === 0) {
+        cell.textContent = '0';
+        cell.className = 'py-3 px-4 font-bold text-slate-400';
+      } else if (diff > 0) {
+        cell.textContent = `+${diff}`;
+        cell.className = 'py-3 px-4 font-bold text-[#0f7646]';
+      } else {
+        cell.textContent = `${diff}`;
+        cell.className = 'py-3 px-4 font-bold text-red-700';
+      }
+    }
+
+    function applyPhysicalInventory() {
+      const inputs = document.querySelectorAll('.inv-input');
+      let changes = 0;
+      inputs.forEach(inp => {
+        const prod = state.products.find(p => p.id === inp.dataset.prodId);
+        const real = Number(inp.value);
+        if (prod && prod.stock !== real) {
+          const diff = real - prod.stock;
+          prod.stock = real;
+          changes++;
+          state.stockMovements.unshift({
+            id: 'MVT-' + Math.floor(600 + Math.random() * 399),
+            date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toTimeString().slice(0, 5),
+            product: prod.name,
+            type: 'Correction Inventaire',
+            qty: diff,
+            depot: prod.depot,
+            user: `${state.currentRole.name} (${state.currentRole.title})`
+          });
+        }
+      });
+
+      if (changes > 0) {
+        logAudit(`Inventaire validé (${changes} écart(s) corrigé(s))`, 'Inventaire');
+        showToast(`${changes} écart(s) mis à jour.`, 'success');
+        renderActiveModule();
+      } else {
+        showToast('Aucun écart détecté.', 'info');
+      }
+    }
+
+    function openStockMovementModal() {
+      const modal = document.getElementById('modal-box');
+      modal.innerHTML = `
+        <div class="p-6 space-y-4">
+          <h2 class="text-lg font-bold text-slate-900">Mouvement de Stock</h2>
+          <form onsubmit="submitStockMovement(event)" class="space-y-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Produit</label>
+              <select id="mvt-prod" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800">
+                ${state.products.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`).join('')}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Type</label>
+                <select id="mvt-type" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800">
+                  <option value="in">Entrée marchandise</option>
+                  <option value="out">Sortie stock</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Quantité</label>
+                <input type="number" id="mvt-qty" min="1" value="10" required class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold text-slate-900">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Dépôt</label>
+              <select id="mvt-depot" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800">
+                <option value="Boutique Centre-Ville">Boutique Centre-Ville</option>
+                <option value="Dépôt Central Akwa">Dépôt Central Akwa</option>
+                <option value="Annexe Yaoundé Bastos">Annexe Yaoundé Bastos</option>
+              </select>
+            </div>
+            <div class="pt-3 flex justify-end gap-2">
+              <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold">Annuler</button>
+              <button type="submit" class="px-4 py-2 rounded-xl bg-[#0f7646] text-white font-semibold">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.getElementById('modal-backdrop').classList.remove('hidden');
+    }
+
+    function submitStockMovement(e) {
+      e.preventDefault();
+      const prod = state.products.find(p => p.id === document.getElementById('mvt-prod').value);
+      const type = document.getElementById('mvt-type').value;
+      const qty = Number(document.getElementById('mvt-qty').value);
+      const depot = document.getElementById('mvt-depot').value;
+      if (!prod) return;
+
+      const signedQty = type === 'in' ? qty : -qty;
+      prod.stock = Math.max(0, prod.stock + signedQty);
+      prod.depot = depot;
+
+      state.stockMovements.unshift({
+        id: 'MVT-' + Math.floor(700 + Math.random() * 299),
+        date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toTimeString().slice(0, 5),
+        product: prod.name,
+        type: type === 'in' ? 'Entrée' : 'Sortie',
+        qty: signedQty,
+        depot,
+        user: `${state.currentRole.name} (${state.currentRole.title})`
+      });
+
+      logAudit(`Mouvement ${signedQty > 0 ? '+' + signedQty : signedQty} ${prod.name}`, 'Stock');
+      closeModal();
+      showToast('Mouvement de stock enregistré.', 'success');
+      renderActiveModule();
+    }
+
+    // =======================================================================
+    // 10. MODULE CLIENTS & FOURNISSEURS (DETTES & CRÉANCES)
+    // =======================================================================
+    function renderTiersModule() {
+      const roleId = state.currentRole.id;
+      const showClients = roleId !== 'magasinier';
+      const showSuppliers = roleId !== 'caissier';
+
+      return `
+        <div class="mb-6">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">
+            ${showClients && showSuppliers ? 'Clients & Fournisseurs — Dettes & Créances' : (showClients ? 'Fichier Clients & Créances' : 'Fournisseurs & Réapprovisionnement')}
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+            ${showClients && showSuppliers ? 'Historique des achats, créances clients et dettes fournisseurs' : (showClients ? 'Consultation de l’historique d’achats et suivi des créances clients' : 'Suivi des fournisseurs et règlements dus')}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 ${showClients && showSuppliers ? 'lg:grid-cols-12' : ''} gap-6">
+          ${showClients ? `
+            <div class="${showClients && showSuppliers ? 'lg:col-span-7' : ''} ref-card rounded-2xl overflow-hidden">
+              <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="font-bold text-slate-900 text-sm sm:text-base">Clients & Créances</h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-800">
+                  Créances : ${formatFCFA(state.clients.reduce((s, c) => s + c.debt, 0))}
+                </span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50/80 text-[11px] font-bold uppercase text-slate-500">
+                      <th class="py-3 px-4">Client</th>
+                      <th class="py-3 px-4">Achats</th>
+                      <th class="py-3 px-4">Créance</th>
+                      <th class="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 text-xs">
+                    ${state.clients.map(c => `
+                      <tr>
+                        <td class="py-3.5 px-4">
+                          <div class="font-bold text-slate-900">${c.name}</div>
+                          <div class="text-[11px] text-slate-400">${c.type} • ${c.phone}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                          <div class="font-semibold text-slate-800">${formatFCFA(c.totalPurchases)}</div>
+                          <div class="text-[10px] text-slate-400">${c.lastOrder}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold ${c.debt > 0 ? 'text-amber-700' : 'text-[#0f7646]'}">
+                          ${c.debt > 0 ? formatFCFA(c.debt) : 'Soldé'}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                          ${c.debt > 0 ? `
+                            <button onclick="settleClientDebt('${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-[#0f7646] hover:bg-[#0b5a35] text-white font-semibold btn-press">
+                              Encaisser
+                            </button>
+                          ` : '<span class="text-slate-300">—</span>'}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+
+          ${showSuppliers ? `
+            <div class="${showClients && showSuppliers ? 'lg:col-span-5' : ''} ref-card rounded-2xl overflow-hidden">
+              <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="font-bold text-slate-900 text-sm sm:text-base">Fournisseurs & Dettes</h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                  Dettes : ${formatFCFA(state.suppliers.reduce((s, f) => s + f.debtToPay, 0))}
+                </span>
+              </div>
+              <div class="divide-y divide-slate-100">
+                ${state.suppliers.map(f => `
+                  <div class="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-xs font-bold text-slate-900">${f.name}</div>
+                      <div class="text-[11px] text-slate-400">${f.category} • ${f.phone}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs font-bold ${f.debtToPay > 0 ? 'text-slate-900' : 'text-[#0f7646]'}">
+                        ${f.debtToPay > 0 ? formatFCFA(f.debtToPay) : 'À jour'}
+                      </div>
+                      ${f.debtToPay > 0 && roleId !== 'magasinier' ? `
+                        <button onclick="paySupplierDebt('${f.id}')" class="mt-1 text-[11px] font-semibold text-[#0f7646] hover:underline">
+                          Régler
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function settleClientDebt(clientId) {
+      const client = state.clients.find(c => c.id === clientId);
+      if (!client || client.debt <= 0) return;
+      const amount = client.debt;
+      client.debt = 0;
+      logAudit(`Encaissement créance ${client.name} (${formatFCFA(amount)})`, 'Règlement');
+      showToast(`Créance de ${formatFCFA(amount)} encaissée.`, 'success');
+      renderActiveModule();
+    }
+
+    function paySupplierDebt(supId) {
+      const sup = state.suppliers.find(s => s.id === supId);
+      if (!sup || sup.debtToPay <= 0) return;
+      const amount = sup.debtToPay;
+      sup.debtToPay = 0;
+      logAudit(`Règlement fournisseur ${sup.name} (${formatFCFA(amount)})`, 'Comptabilité');
+      showToast(`Dette fournisseur de ${formatFCFA(amount)} réglée.`, 'success');
+      renderActiveModule();
+    }
+
+    // =======================================================================
+    // 11. MODULE EXPORT COMPTABLE SAGE (COMPTABLE & GÉRANT)
+    // =======================================================================
+    function renderComptabiliteModule() {
+      return `
+        <div class="mb-6">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">Export Comptable Format Sage</h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Export par période des ventes, achats et règlements au format CSV / Excel compatible Sage</p>
+        </div>
+
+        <div class="ref-card p-6 rounded-2xl mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Journal à exporter</label>
+              <select id="sage-journal" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800">
+                <option value="VENTES">Ventes (Journal VT)</option>
+                <option value="ACHATS">Achats (Journal AC)</option>
+                <option value="REGLEMENTS">Règlements (Journal BQ)</option>
+                <option value="COMPLET">Complet (Ventes, Achats & Règlements)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Date début</label>
+              <input type="date" id="sage-start" value="2026-11-01" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Date fin</label>
+              <input type="date" id="sage-end" value="2026-11-19" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800">
+            </div>
+            <div class="flex gap-2">
+              <button onclick="downloadSageCSV()" class="flex-1 py-2.5 px-4 bg-[#0f7646] hover:bg-[#0b5a35] text-white rounded-xl text-xs font-semibold btn-press">
+                Export CSV Sage
+              </button>
+              <button onclick="exportReportSimulated('Excel Sage')" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold btn-press">
+                Excel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ref-card rounded-2xl overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="font-bold text-slate-900 text-sm">Aperçu des écritures Sage</h2>
+            <span class="text-xs text-slate-400">UTF-8 • Séparateur (;)</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/80 text-[11px] font-bold uppercase text-slate-500">
+                  <th class="py-3 px-4">Journal</th>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Compte</th>
+                  <th class="py-3 px-4">Libellé</th>
+                  <th class="py-3 px-4 text-right">Débit</th>
+                  <th class="py-3 px-4 text-right">Crédit</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-xs font-mono text-slate-700">
+                <tr>
+                  <td class="py-3 px-4 font-bold text-slate-900">VT</td>
+                  <td class="py-3 px-4">19/11/2026</td>
+                  <td class="py-3 px-4">411100</td>
+                  <td class="py-3 px-4 font-sans">Facture FAC-2026-104 Ets Kamga</td>
+                  <td class="py-3 px-4 text-right font-bold text-slate-900">425 000</td>
+                  <td class="py-3 px-4 text-right text-slate-400">0</td>
+                </tr>
+                <tr>
+                  <td class="py-3 px-4 font-bold text-slate-900">VT</td>
+                  <td class="py-3 px-4">19/11/2026</td>
+                  <td class="py-3 px-4">701100</td>
+                  <td class="py-3 px-4 font-sans">Ventes marchandises FAC-2026-104</td>
+                  <td class="py-3 px-4 text-right text-slate-400">0</td>
+                  <td class="py-3 px-4 text-right font-bold text-slate-900">425 000</td>
+                </tr>
+                <tr>
+                  <td class="py-3 px-4 font-bold text-[#0f7646]">BQ</td>
+                  <td class="py-3 px-4">19/11/2026</td>
+                  <td class="py-3 px-4">521200</td>
+                  <td class="py-3 px-4 font-sans">Règlement Orange Money FAC-2026-104</td>
+                  <td class="py-3 px-4 text-right font-bold text-slate-900">250 000</td>
+                  <td class="py-3 px-4 text-right text-slate-400">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadSageCSV() {
+      const journal = document.getElementById('sage-journal').value;
+      const start = document.getElementById('sage-start').value;
+      const end = document.getElementById('sage-end').value;
+
+      const csv = [
+        'Journal;Date;Compte;Piece;Libelle;Debit;Credit',
+        'VT;19/11/2026;411100;FAC-2026-104;Facture Ets Kamga;425000;0',
+        'VT;19/11/2026;701100;FAC-2026-104;Ventes marchandises;0;425000',
+        'BQ;19/11/2026;521200;FAC-2026-104;Reglement Orange Money;250000;0'
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Sage_${journal}_${start}_${end}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      logAudit(`Export CSV Sage (${journal}) du ${start} au ${end}`, 'Comptabilité');
+      showToast(`Export CSV Sage (${journal}) téléchargé.`, 'success');
+    }
+
+    function exportReportSimulated(format) {
+      logAudit(`Export ${format} généré`, 'Rapport');
+      showToast(`Export ${format} prêt.`, 'success');
+    }
+
+    // =======================================================================
+    // 12. MODULE UTILISATEURS, SAUVEGARDE AUTO & JOURNAL D'AUDIT (GÉRANT)
+    // =======================================================================
+    function renderSecuriteModule() {
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">Utilisateurs, Rôles & Journal d'Activité</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Comptes utilisateurs, sauvegarde automatique et traçabilité de chaque action</p>
+          </div>
+          <button onclick="triggerManualBackup()" class="px-4 py-2.5 bg-[#0f7646] hover:bg-[#0b5a35] text-white rounded-xl text-xs font-semibold btn-press self-start sm:self-auto">
+            Sauvegarder maintenant
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-5 ref-card rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-100">
+              <h2 class="font-bold text-slate-900 text-sm">Comptes Utilisateurs (${state.users.length})</h2>
+            </div>
+            <div class="divide-y divide-slate-100">
+              ${state.users.map(u => `
+                <div class="p-4 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div class="font-bold text-slate-900">${u.name}</div>
+                    <div class="text-[11px] text-slate-400">${u.email} • ${u.lastLogin}</div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-[#0f7646] font-bold text-[11px]">${u.role}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="lg:col-span-7 ref-card rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="font-bold text-slate-900 text-sm">Journal d'Activité (${state.auditLogs.length})</h2>
+              <span class="text-[11px] font-semibold text-[#0f7646] bg-emerald-50 px-2.5 py-0.5 rounded-full">Sauvegarde auto active</span>
+            </div>
+            <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+              ${state.auditLogs.map(log => `
+                <div class="p-3.5 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs hover:bg-slate-50/70">
+                  <div class="flex items-center gap-2.5">
+                    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px] uppercase">${log.category}</span>
+                    <span class="font-medium text-slate-800">${log.action}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 shrink-0">
+                    <strong class="text-slate-700">${log.user}</strong> • ${log.time}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =======================================================================
+    // 13. INITIALISATION AU CHARGEMENT
+    // =======================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      buildCarouselTrack();
+      renderDemoAccountCards();
+      restartCarouselTimer();
+    });
+  </script>
+</body>
+</html>
